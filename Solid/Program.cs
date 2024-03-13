@@ -4,139 +4,83 @@ using static System.Console;
 namespace Solid
 {
 
-    public class Document
+    // hl modules should not depend on low-level; both should depend on abstractions
+    // abstractions should not depend on details; details should depend on abstractions
+
+    public enum Relationship
     {
+        Parent,
+        Child,
+        Sibling
     }
 
-    public interface IMachine
+    public class Person
     {
-        void Print(Document d);
-        void Fax(Document d);
-        void Scan(Document d);
+        public string Name;
+        // public DateTime DateOfBirth;
     }
 
-    // ok if you need a multifunction machine
-    public class MultiFunctionPrinter : IMachine
+    public interface IRelationshipBrowser
     {
-        public void Print(Document d)
-        {
-            //
-        }
-
-        public void Fax(Document d)
-        {
-            //
-        }
-
-        public void Scan(Document d)
-        {
-            //
-        }
+        IEnumerable<Person> FindAllChildrenOf(string name);
     }
 
-    public class OldFashionedPrinter : IMachine
+    public class Relationships : IRelationshipBrowser // low-level
     {
-        public void Print(Document d)
+        private List<(Person, Relationship, Person)> relations
+          = new List<(Person, Relationship, Person)>();
+
+        public void AddParentAndChild(Person parent, Person child)
         {
-            // yep
+            relations.Add((parent, Relationship.Parent, child));
+            relations.Add((child, Relationship.Child, parent));
         }
 
-        public void Fax(Document d)
-        {
-            throw new System.NotImplementedException();
-        }
+        public List<(Person, Relationship, Person)> Relations => relations;
 
-        public void Scan(Document d)
+        public IEnumerable<Person> FindAllChildrenOf(string name)
         {
-            throw new System.NotImplementedException();
+            return relations
+              .Where(x => x.Item1.Name == name
+                          && x.Item2 == Relationship.Parent).Select(r => r.Item3);
         }
     }
-
-
-    public interface IPrinter
-    {
-        void Print(Document d);
-    }
-
-    public interface IScanner
-    {
-        void Scan(Document d);
-    }
-
-    public class Printer : IPrinter
-    {
-        public void Print(Document d)
-        {
-
-        }
-    }
-
-    public class Photocopier : IPrinter, IScanner
-    {
-        public void Print(Document d)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public void Scan(Document d)
-        {
-            throw new System.NotImplementedException();
-        }
-    }
-
-    public interface IMultiFunctionDevice : IPrinter, IScanner //
-    {
-        void Fax(Document d);
-    }
-
-    public struct MultiFunctionMachine : IMultiFunctionDevice
-    {
-        // compose this out of several modules
-        private IPrinter printer;
-        private IScanner scanner;
-
-     
-
-        public MultiFunctionMachine(IPrinter printer, IScanner scanner)
-        {
-            if (printer == null)
-            {
-                throw new ArgumentNullException(paramName: nameof(printer));
-            }
-            if (scanner == null)
-            {
-                throw new ArgumentNullException(paramName: nameof(scanner));
-            }
-            this.printer = printer;
-            this.scanner = scanner;
-        }
-
-        public void Fax(Document d)
-        {
-            //Can Fax
-        }
-
-        public void Print(Document d)
-        {
-            printer.Print(d);
-        }
-
-        public void Scan(Document d)
-        {
-            scanner.Scan(d);
-        }
-    }
-
 
     internal class Program
     {
+        //public Research(Relationships relationships)
+        //{
+        //    high - level: find all of john's children
+        //    var relations = relationships.Relations;
+        //    foreach (var r in relations
+        //      .Where(x => x.Item1.Name == "John"
+        //                  && x.Item2 == Relationship.Parent))
+        //    {
+        //        WriteLine($"John has a child called {r.Item3.Name}");
+        //    }
+        //}
 
-    
+        public Program(IRelationshipBrowser browser)
+        {
+            foreach (var p in browser.FindAllChildrenOf("John"))
+            {
+                WriteLine($"John has a child called {p.Name}");
+            }
+        }
+
         static void Main(string[] args)
         {
 
-           
+            var parent = new Person { Name = "John" };
+            var child1 = new Person { Name = "Chris" };
+            var child2 = new Person { Name = "Matt" };
 
+            // low-level module
+            var relationships = new Relationships();
+            relationships.AddParentAndChild(parent, child1);
+            relationships.AddParentAndChild(parent, child2);
+
+            new Program(relationships);
         }
 
 
