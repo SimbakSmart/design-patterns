@@ -4,74 +4,138 @@ using static System.Console;
 namespace Solid
 {
 
-    // using a classic example
-    public class Rectangle
+    public class Document
     {
-        //public int Width { get; set; }
-        //public int Height { get; set; }
+    }
 
-        public virtual int Width { get; set; }
-        public virtual int Height { get; set; }
+    public interface IMachine
+    {
+        void Print(Document d);
+        void Fax(Document d);
+        void Scan(Document d);
+    }
 
-        public Rectangle()
+    // ok if you need a multifunction machine
+    public class MultiFunctionPrinter : IMachine
+    {
+        public void Print(Document d)
         {
-
+            //
         }
 
-        public Rectangle(int width, int height)
+        public void Fax(Document d)
         {
-            Width = width;
-            Height = height;
+            //
         }
 
-        public override string ToString()
+        public void Scan(Document d)
         {
-            return $"{nameof(Width)}: {Width}, {nameof(Height)}: {Height}";
+            //
+        }
+    }
+
+    public class OldFashionedPrinter : IMachine
+    {
+        public void Print(Document d)
+        {
+            // yep
+        }
+
+        public void Fax(Document d)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Scan(Document d)
+        {
+            throw new System.NotImplementedException();
         }
     }
 
 
-    public class Square : Rectangle
+    public interface IPrinter
     {
-        //public new int Width
-        //{
-        //  set { base.Width = base.Height = value; }
-        //}
+        void Print(Document d);
+    }
 
-        //public new int Height
-        //{ 
-        //  set { base.Width = base.Height = value; }
-        //}
+    public interface IScanner
+    {
+        void Scan(Document d);
+    }
 
-        public override int Width // nasty side effects
+    public class Printer : IPrinter
+    {
+        public void Print(Document d)
         {
-            set { base.Width = base.Height = value; }
-        }
 
-        public override int Height
-        {
-            set { base.Width = base.Height = value; }
         }
     }
 
+    public class Photocopier : IPrinter, IScanner
+    {
+        public void Print(Document d)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Scan(Document d)
+        {
+            throw new System.NotImplementedException();
+        }
+    }
+
+    public interface IMultiFunctionDevice : IPrinter, IScanner //
+    {
+        void Fax(Document d);
+    }
+
+    public struct MultiFunctionMachine : IMultiFunctionDevice
+    {
+        // compose this out of several modules
+        private IPrinter printer;
+        private IScanner scanner;
+
+     
+
+        public MultiFunctionMachine(IPrinter printer, IScanner scanner)
+        {
+            if (printer == null)
+            {
+                throw new ArgumentNullException(paramName: nameof(printer));
+            }
+            if (scanner == null)
+            {
+                throw new ArgumentNullException(paramName: nameof(scanner));
+            }
+            this.printer = printer;
+            this.scanner = scanner;
+        }
+
+        public void Fax(Document d)
+        {
+            //Can Fax
+        }
+
+        public void Print(Document d)
+        {
+            printer.Print(d);
+        }
+
+        public void Scan(Document d)
+        {
+            scanner.Scan(d);
+        }
+    }
 
 
     internal class Program
     {
 
-        static public int Area(Rectangle r) => r.Width * r.Height;
+    
         static void Main(string[] args)
         {
 
-            Rectangle rc = new Rectangle(2, 3);
-            WriteLine($"{rc} has area {Area(rc)}");
-
-
-            // should be able to substitute a base type for a subtype
-            /*Square*/
-            Rectangle sq = new Square();
-            sq.Width = 4;
-            WriteLine($"{sq} has area {Area(sq)}");
+           
 
         }
 
