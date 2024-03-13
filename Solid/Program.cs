@@ -4,238 +4,74 @@ using static System.Console;
 namespace Solid
 {
 
-    public enum Color
+    // using a classic example
+    public class Rectangle
     {
-        Red, Green, Blue
-    }
+        //public int Width { get; set; }
+        //public int Height { get; set; }
 
-    public enum Size
-    {
-        Small, Medium, Large, Yuge
-    }
+        public virtual int Width { get; set; }
+        public virtual int Height { get; set; }
 
-    public enum Country
-    {
-        Mexico, Usas, Canada
-    }
-
-    public class Product
-    {
-        public string Name;
-        public Color Color;
-        public Size Size;
-        public Country Country;
-
-        public Product(string name, Color color, Size size)
+        public Rectangle()
         {
-            Name = name ?? throw new ArgumentNullException(paramName: nameof(name));
-            Color = color;
-            Size = size;
+
         }
 
-        public Product(string name, Color color, Size size, Country country)
+        public Rectangle(int width, int height)
         {
-            Name = name;
-            Color = color;
-            Size = size;
-            Country = country;
-        }
-    }
-
-    public class ProductFilter
-    {
-        // let's suppose we don't want ad-hoc queries on products
-        public IEnumerable<Product> FilterByColor(IEnumerable<Product> products, Color color)
-        {
-            foreach (var p in products)
-                if (p.Color == color)
-                    yield return p;
+            Width = width;
+            Height = height;
         }
 
-        public static IEnumerable<Product> FilterBySize(IEnumerable<Product> products, Size size)
+        public override string ToString()
         {
-            foreach (var p in products)
-                if (p.Size == size)
-                    yield return p;
-        }
-
-        public static IEnumerable<Product> FilterBySizeAndColor(IEnumerable<Product> products, Size size, Color color)
-        {
-            foreach (var p in products)
-                if (p.Size == size && p.Color == color)
-                    yield return p;
-        } // state space explosion
-          // 3 criteria = 7 methods
-
-        // OCP = open for extension but closed for modification
-    }
-
-
-    // we introduce two new interfaces that are open for extension
-
-    public interface ISpecification<T>
-    {
-        bool IsSatisfied(Product p);
-    }
-    public interface IFilter<T>
-    {
-        IEnumerable<T> Filter(IEnumerable<T> items, ISpecification<T> spec);
-    }
-
-    public class ColorSpecification : ISpecification<Product>
-    {
-        private Color color;
-
-        public ColorSpecification(Color color)
-        {
-            this.color = color;
-        }
-
-        public bool IsSatisfied(Product p)
-        {
-            return p.Color == color;
+            return $"{nameof(Width)}: {Width}, {nameof(Height)}: {Height}";
         }
     }
 
 
-
-    public class SizeSpecification : ISpecification<Product>
+    public class Square : Rectangle
     {
-        private Size size;
+        //public new int Width
+        //{
+        //  set { base.Width = base.Height = value; }
+        //}
 
-        public SizeSpecification(Size size)
+        //public new int Height
+        //{ 
+        //  set { base.Width = base.Height = value; }
+        //}
+
+        public override int Width // nasty side effects
         {
-            this.size = size;
+            set { base.Width = base.Height = value; }
         }
 
-        public bool IsSatisfied(Product p)
+        public override int Height
         {
-            return p.Size == size;
+            set { base.Width = base.Height = value; }
         }
     }
-
-    public class CountrySpecification : ISpecification<Product>
-    {
-        private Country country;
-
-        public CountrySpecification(Country country)
-        {
-            this.country = country;
-        }
-        public bool IsSatisfied(Product p)
-        {
-            return p.Country == country;
-        }
-    }
-
-    // combinator
-    public class AndSpecification<T> : ISpecification<T>
-    {
-        private ISpecification<T> first, second;
-
-        public AndSpecification(ISpecification<T> first, ISpecification<T> second)
-        {
-            this.first = first ?? throw new ArgumentNullException(paramName: nameof(first));
-            this.second = second ?? throw new ArgumentNullException(paramName: nameof(second));
-        }
-
-        public bool IsSatisfied(Product p)
-        {
-            return first.IsSatisfied(p) && second.IsSatisfied(p);
-        }
-    }
-    public class AndCountrySpecification<T> : ISpecification<T>
-    {
-        private ISpecification<T> first, second, third;
-        public AndCountrySpecification(ISpecification<T> first, ISpecification<T> second, ISpecification<T> third)
-        {
-            this.first = first ?? throw new ArgumentNullException(paramName: nameof(first));
-            this.second = second ?? throw new ArgumentNullException(paramName: nameof(second));
-            this.third = third ?? throw new ArgumentNullException(paramName: nameof(third));
-        }
-        public bool IsSatisfied(Product p)
-        {
-            return first.IsSatisfied(p) && second.IsSatisfied(p) && third.IsSatisfied(p);
-        }
-    }
-
-    public class BetterFilter : IFilter<Product>
-    {
-        public IEnumerable<Product> Filter(IEnumerable<Product> items, ISpecification<Product> spec)
-        {
-            foreach (var i in items)
-                if (spec.IsSatisfied(i))
-                    yield return i;
-        }
-    }
-
-
-
 
 
 
     internal class Program
     {
+
+        static public int Area(Rectangle r) => r.Width * r.Height;
         static void Main(string[] args)
         {
 
-            var apple = new Product("Apple", Color.Green, Size.Small);
-            var tree = new Product("Tree", Color.Green, Size.Large);
-            var house = new Product("House", Color.Blue, Size.Large);
-
-            Product[] products = { apple, tree, house };
-
-            var pf = new ProductFilter();
-            WriteLine("Green products (old):");
-            foreach (var p in pf.FilterByColor(products, Color.Green))
-                WriteLine($" - {p.Name} is green");
-
-            // ^^ BEFORE
-
-            // vv AFTER
-            var bf = new BetterFilter();
-            WriteLine("Green products (new):");
-            foreach (var p in bf.Filter(products, new ColorSpecification(Color.Green)))
-                WriteLine($" - {p.Name} is green");
-
-            WriteLine("Large products");
-            foreach (var p in bf.Filter(products, new SizeSpecification(Size.Large)))
-                WriteLine($" - {p.Name} is large");
+            Rectangle rc = new Rectangle(2, 3);
+            WriteLine($"{rc} has area {Area(rc)}");
 
 
-
-            WriteLine("Large blue items");
-            foreach (var p in bf.Filter(products,
-              new AndSpecification<Product>(new ColorSpecification(Color.Blue), new SizeSpecification(Size.Large)))
-            )
-            {
-                WriteLine($" - {p.Name} is big and blue");
-            }
-
-            var frist = new Product("Apple", Color.Green, Size.Small, Country.Mexico);
-            var second = new Product("Tree", Color.Green, Size.Large, Country.Canada);
-            var third = new Product("House", Color.Blue, Size.Large, Country.Canada);
-
-            Product[] list = { frist, second, third };
-
-            WriteLine("Large products *******");
-            foreach (var p in bf.Filter(list, new SizeSpecification(Size.Large)))
-                WriteLine($" - {p.Name} is large");
-
-
-            WriteLine("Country products *******");
-            foreach (var p in bf.Filter(list, new CountrySpecification(Country.Mexico)))
-                WriteLine($" - {p.Name} is Country {p.Country}");
-
-
-            WriteLine("Color Size And Country  items");
-            foreach (var p in bf.Filter(list,
-              new AndCountrySpecification<Product>(new ColorSpecification(Color.Blue), 
-              new SizeSpecification(Size.Large),new CountrySpecification(Country.Canada)))
-            )
-            {
-                WriteLine($" - {p.Name} Color {p.Color} Size {p.Size} Country {p.Country}");
-            }
+            // should be able to substitute a base type for a subtype
+            /*Square*/
+            Rectangle sq = new Square();
+            sq.Width = 4;
+            WriteLine($"{sq} has area {Area(sq)}");
 
         }
 
